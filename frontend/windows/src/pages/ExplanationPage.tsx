@@ -182,17 +182,18 @@ const ExplanationPage = () => {
 
   return (
     <div className="space-y-0">
-      {/* ═══════════════════ HERO SECTION ═══════════════════ */}
-      <section className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] min-h-screen flex items-center justify-center overflow-hidden px-4 md:px-8 -mt-[73px]">
-        {/* Background Video */}
-        <FrameVideoBackground
-          frameFolder="/wallpaper"
-          frameCount={80}
-          fps={24}
-          parallax
-        />
-        
-        {/* Dynamic background orb */}
+      {/* Fixed Background Video spanning entire page */}
+      <FrameVideoBackground
+        frameFolder="/wallpaper"
+        frameCount={80}
+        fps={24}
+        className="!fixed inset-0 w-screen h-[100dvh] z-0 pointer-events-none"
+      />
+
+      <div className="relative z-10">
+        {/* ═══════════════════ HERO SECTION ═══════════════════ */}
+        <section className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] min-h-screen flex items-center justify-center overflow-hidden px-4 md:px-8 -mt-[73px]">
+          {/* Dynamic background orb */}
         <div
           className="absolute rounded-full blur-[120px] opacity-30 z-0"
           style={{
@@ -402,6 +403,7 @@ const ExplanationPage = () => {
           </div>
         </RevealSection>
       </section>
+      </div>
     </div>
   );
 };
