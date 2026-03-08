@@ -46,8 +46,11 @@ const DashboardLayout = ({
         )}
       >
         <div className="container flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between">
-          <NavLink to="/" className="font-serif text-2xl font-semibold tracking-tight text-slate-100">
-            RentEscrow
+          <NavLink to="/" className="flex items-center gap-3">
+            <img src="/logof.png" alt="LeaseLock Logo" className="h-10 w-auto" />
+            <span className="font-serif text-2xl font-semibold tracking-tight text-slate-100 hidden sm:inline-block">
+              RentEscrow
+            </span>
           </NavLink>
           <nav
             className={cn(

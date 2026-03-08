@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import LandlordRatingCard from "@/components/LandlordRatingCard";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useLandlordRatings } from "@/hooks/useLandlordRatings";
@@ -28,9 +29,22 @@ const LandlordRatingsPage = () => {
     <div className="space-y-6">
       <section className="rounded-xl border border-slate-700/80 bg-slate-900/55 p-4 shadow-md shadow-slate-950/20 backdrop-blur-sm">
         <h2 className="font-serif text-3xl text-slate-100">Landlord Ratings</h2>
-        <p className="mt-2 text-sm text-slate-300">
-          Search and rank landlords by reputation, rating volume, and escrow activity.
-        </p>
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-sm text-slate-300">
+            Search and rank landlords by reputation, rating volume, and escrow activity.
+          </p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="border-violet-600/50 bg-violet-950/40 text-violet-300 hover:bg-violet-900/60"
+            onClick={() => {
+              localStorage.removeItem("rent-escrow-contracts-v1");
+              window.location.reload();
+            }}
+          >
+            🎲 Generate Demo Ratings
+          </Button>
+        </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
           <Input
