@@ -7,6 +7,7 @@ interface FrameVideoBackgroundProps {
   fps?: number;
   className?: string;
   overlayClassName?: string;
+  parallax?: boolean;
 }
 
 export const FrameVideoBackground = ({
@@ -15,14 +16,27 @@ export const FrameVideoBackground = ({
   fps = 24,
   className,
   overlayClassName,
+  parallax = false,
 }: FrameVideoBackgroundProps) => {
   const [currentFrame, setCurrentFrame] = useState(0);
   const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
   const imagesRef = useRef<HTMLImageElement[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Parallax handling
+  useEffect(() => {
+    if (!parallax) return;
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [parallax]);
+
   // Preload images
   useEffect(() => {
+// ... omitting unchanged code below this ...
     let loadedCount = 0;
     const images: HTMLImageElement[] = [];
 
@@ -87,29 +101,31 @@ export const FrameVideoBackground = ({
   return (
     <div className={cn("absolute inset-0 overflow-hidden bg-slate-950", className)}>
       {!imagesLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center text-slate-500 font-mono text-xs">
+        <div className="absolute inset-0 flex items-center justify-center text-slate-500 font-mono text-xs z-10">
           Loading HQ Video...
         </div>
       )}
       
       {/* 
         To hide the watermark (which is usually fast in AI generations near bottom right),
-        we scale the video slightly and translate it so the edges are cropped, 
-        and apply a strong gradient overlay at the bottom.
+        we scale the video slightly and translate it so the edges are cropped.
       */}
-      <div className="absolute inset-0 w-full h-full transform scale-105 origin-center">
+      <div 
+        className="absolute inset-0 w-full h-[120%] -top-[10%] transform scale-[1.15] origin-center"
+        style={{ transform: parallax ? `translateY(${scrollY * 0.4}px) scale(1.15)` : "scale(1.15)" }}
+      >
         <canvas
           ref={canvasRef}
           className={cn(
             "w-full h-full object-cover transition-opacity duration-1000",
-            imagesLoaded ? "opacity-30" : "opacity-0" // Kept at lower opacity to act as background
+            imagesLoaded ? "opacity-30" : "opacity-0"
           )}
         />
       </div>
 
       {/* Primary overlay to ensure text readability and hide bottom text/watermarks */}
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
-      <div className="absolute inset-0 bg-background/40" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#1d2128] via-[#1d2128]/80 to-transparent" />
+      <div className="absolute inset-0 bg-[#1d2128]/40" />
       
       {overlayClassName && <div className={cn("absolute inset-0", overlayClassName)} />}
     </div>

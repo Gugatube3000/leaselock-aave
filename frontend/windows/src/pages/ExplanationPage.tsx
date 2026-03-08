@@ -181,14 +181,15 @@ const ExplanationPage = () => {
   }, []);
 
   return (
-    <div className="space-y-0 -mt-8 md:-mt-12">
+    <div className="space-y-0">
       {/* ═══════════════════ HERO SECTION ═══════════════════ */}
-      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden -mx-4 md:-mx-8 px-4 md:px-8">
+      <section className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] min-h-screen flex items-center justify-center overflow-hidden px-4 md:px-8 -mt-[73px]">
         {/* Background Video */}
         <FrameVideoBackground
           frameFolder="/wallpaper"
           frameCount={80}
           fps={24}
+          parallax
         />
         
         {/* Dynamic background orb */}
