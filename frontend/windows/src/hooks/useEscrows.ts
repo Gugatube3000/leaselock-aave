@@ -1,18 +1,32 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  EscrowDisplay,
+  loadAllEscrows,
+  deployEscrow,
+  confirmLease as confirmLeaseService,
+  releaseFunds as releaseFundsService,
+  refund as refundService,
+  rateLandlord as rateLandlordService,
+  addExistingAddress,
+} from "@/services/blockchainService";
 
-import { escrowService } from "@/services/escrowService";
-import { CreateEscrowInput, EscrowContract } from "@/types/escrow";
+export interface CreateEscrowInput {
+  landlord: string;
+  rentAmountEth: string;
+  durationDays: number;
+}
 
 export const useEscrows = (walletAddress?: string) => {
-  const [escrows, setEscrows] = useState<EscrowContract[]>([]);
+  const [escrows, setEscrows] = useState<EscrowDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [txPending, setTxPending] = useState(false);
 
-  const refresh = useCallback(() => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const records = escrowService.listEscrows(walletAddress);
-      setEscrows(records.sort((a, b) => b.createdAt - a.createdAt));
+      const records = await loadAllEscrows(walletAddress);
+      setEscrows(records);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load escrows");
@@ -26,51 +40,99 @@ export const useEscrows = (walletAddress?: string) => {
   }, [refresh]);
 
   const createEscrow = useCallback(
-    (payload: CreateEscrowInput, tenant: string) => {
-      escrowService.createEscrow(payload, tenant);
-      refresh();
+    async (payload: CreateEscrowInput) => {
+      setTxPending(true);
+      try {
+        const durationSeconds = payload.durationDays * 24 * 60 * 60;
+        const address = await deployEscrow(payload.landlord, durationSeconds, payload.rentAmountEth);
+        await refresh();
+        return address;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to deploy escrow");
+        throw err;
+      } finally {
+        setTxPending(false);
+      }
     },
     [refresh],
   );
 
   const confirmLease = useCallback(
-    (address: string) => {
-      escrowService.confirmLease(address);
-      refresh();
+    async (address: string) => {
+      setTxPending(true);
+      try {
+        await confirmLeaseService(address);
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to confirm lease");
+      } finally {
+        setTxPending(false);
+      }
     },
     [refresh],
   );
 
   const releaseFunds = useCallback(
-    (address: string) => {
-      escrowService.releaseFunds(address);
-      refresh();
+    async (address: string) => {
+      setTxPending(true);
+      try {
+        await releaseFundsService(address);
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to release funds");
+      } finally {
+        setTxPending(false);
+      }
     },
     [refresh],
   );
 
   const requestRefund = useCallback(
-    (address: string) => {
-      escrowService.requestRefund(address);
-      refresh();
+    async (address: string) => {
+      setTxPending(true);
+      try {
+        await refundService(address);
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to request refund");
+      } finally {
+        setTxPending(false);
+      }
     },
     [refresh],
   );
 
-  const rateLandlord = useCallback(
-    (address: string, reviewer: string, score: number, review: string) => {
-      escrowService.rateLandlord(address, reviewer, score, review);
+  const rateLandlordAction = useCallback(
+    async (address: string, score: number) => {
+      setTxPending(true);
+      try {
+        await rateLandlordService(address, score);
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to rate landlord");
+      } finally {
+        setTxPending(false);
+      }
+    },
+    [refresh],
+  );
+
+  const trackExistingEscrow = useCallback(
+    (address: string) => {
+      addExistingAddress(address);
       refresh();
     },
     [refresh],
   );
 
   const escrowStats = useMemo(() => {
-    const totalValueEth = escrows.reduce((sum, escrow) => sum + Number(escrow.rentAmountEth), 0).toFixed(3);
-    const pending = escrows.filter((escrow) => escrow.status === "pending").length;
-    const confirmed = escrows.filter((escrow) => escrow.status === "confirmed").length;
+    const totalValueEth = escrows
+      .reduce((sum, e) => sum + Number(e.depositAmountEth), 0)
+      .toFixed(4);
+    const pending = escrows.filter((e) => e.status === "pending").length;
+    const confirmed = escrows.filter((e) => e.status === "confirmed").length;
     const totalYieldEarned = escrows
-      .reduce((sum, escrow) => sum + Number(escrow.aaveYieldEarned || 0), 0)
+      .reduce((sum, e) => sum + Number(e.accruedYieldEth), 0)
       .toFixed(6);
 
     return {
@@ -86,12 +148,14 @@ export const useEscrows = (walletAddress?: string) => {
     escrows,
     loading,
     error,
+    txPending,
     escrowStats,
     refresh,
     createEscrow,
     confirmLease,
     releaseFunds,
     requestRefund,
-    rateLandlord,
+    rateLandlord: rateLandlordAction,
+    trackExistingEscrow,
   };
 };

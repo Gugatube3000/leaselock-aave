@@ -3,29 +3,30 @@ import { FormEvent, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { CreateEscrowInput } from "@/types/escrow";
+import { CreateEscrowInput } from "@/hooks/useEscrows";
 
 interface CreateEscrowFormProps {
   walletAddress: string | null;
-  onCreate: (data: CreateEscrowInput, tenant: string) => void;
+  onCreate: (data: CreateEscrowInput) => Promise<unknown>;
+  txPending: boolean;
 }
 
 const initialState: CreateEscrowInput = {
   landlord: "",
   rentAmountEth: "",
-  yieldPercent: 3,
   durationDays: 7,
 };
 
 const ethAddressPattern = /^0x[a-fA-F0-9]{40}$/;
 
-const CreateEscrowForm = ({ walletAddress, onCreate }: CreateEscrowFormProps) => {
+const CreateEscrowForm = ({ walletAddress, onCreate, txPending }: CreateEscrowFormProps) => {
   const [form, setForm] = useState<CreateEscrowInput>(initialState);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [deploying, setDeploying] = useState(false);
 
-  const isDisabled = useMemo(() => !walletAddress, [walletAddress]);
+  const isDisabled = useMemo(() => !walletAddress || txPending || deploying, [walletAddress, txPending, deploying]);
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!walletAddress) {
@@ -40,18 +41,21 @@ const CreateEscrowForm = ({ walletAddress, onCreate }: CreateEscrowFormProps) =>
       setValidationError("Rent amount must be greater than 0 ETH.");
       return;
     }
-    if (form.yieldPercent < 0 || form.yieldPercent > 100) {
-      setValidationError("Yield percentage must be between 0 and 100.");
-      return;
-    }
     if (form.durationDays < 1 || form.durationDays > 365) {
       setValidationError("Lease duration should be between 1 and 365 days.");
       return;
     }
 
-    onCreate(form, walletAddress);
+    setDeploying(true);
     setValidationError(null);
-    setForm(initialState);
+    try {
+      await onCreate(form);
+      setForm(initialState);
+    } catch (err) {
+      setValidationError(err instanceof Error ? err.message : "Transaction failed");
+    } finally {
+      setDeploying(false);
+    }
   };
 
   return (
@@ -59,7 +63,7 @@ const CreateEscrowForm = ({ walletAddress, onCreate }: CreateEscrowFormProps) =>
       <CardHeader>
         <CardTitle className="text-xl text-slate-100">Create New Escrow</CardTitle>
         <CardDescription className="text-slate-300">
-          Deploy a new rent escrow contract with your landlord, deposit amount, and refund deadline.
+          Deploy a new AaveRentEscrow contract on Sepolia. Your ETH will be wrapped to WETH and supplied to Aave V3 for real yield.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -74,9 +78,9 @@ const CreateEscrowForm = ({ walletAddress, onCreate }: CreateEscrowFormProps) =>
             />
           </label>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-2 text-sm font-medium text-slate-200">
-              Rent Amount (ETH)
+              Rent Amount (Sepolia ETH)
               <Input
                 type="number"
                 step="0.001"
@@ -84,20 +88,6 @@ const CreateEscrowForm = ({ walletAddress, onCreate }: CreateEscrowFormProps) =>
                 className="bg-white text-slate-900"
                 value={form.rentAmountEth}
                 onChange={(event) => setForm((current) => ({ ...current, rentAmountEth: event.target.value }))}
-              />
-            </label>
-
-            <label className="grid gap-2 text-sm font-medium text-slate-200">
-              Yield Percentage
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                className="bg-white text-slate-900"
-                value={form.yieldPercent}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, yieldPercent: Number(event.target.value || "0") }))
-                }
               />
             </label>
 
@@ -116,10 +106,20 @@ const CreateEscrowForm = ({ walletAddress, onCreate }: CreateEscrowFormProps) =>
             </label>
           </div>
 
-          {validationError ? <p className="text-sm text-red-600">{validationError}</p> : null}
+          <div className="rounded-md bg-emerald-950/40 border border-emerald-800/30 p-3 text-sm text-emerald-300">
+            <p className="flex items-center gap-1.5 font-medium">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Aave V3 Yield
+            </p>
+            <p className="text-xs text-emerald-400/80 mt-1">
+              Your deposit will automatically earn yield from Aave's lending pool on Sepolia. The yield goes to the tenant when funds are released.
+            </p>
+          </div>
+
+          {validationError ? <p className="text-sm text-red-400">{validationError}</p> : null}
 
           <Button disabled={isDisabled} className="w-full md:w-fit">
-            Deposit & Deploy Escrow
+            {deploying ? "⏳ Deploying Contract..." : "🚀 Deploy Escrow on Sepolia"}
           </Button>
         </form>
       </CardContent>

@@ -13,7 +13,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const { account, accountLabel, connecting, isConnected, connect, disconnect } = useWallet();
+  const { account, accountLabel, connecting, isConnected, onSepolia, connect, disconnect } = useWallet();
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -21,6 +21,11 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          {isConnected && !onSepolia && (
+            <div className="bg-amber-700 text-white text-center py-2 text-sm font-medium">
+              ⚠️ Please switch MetaMask to the <strong>Sepolia testnet</strong> to use this app.
+            </div>
+          )}
           <Routes>
             <Route
               element={
