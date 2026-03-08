@@ -16,6 +16,7 @@ import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { FrameVideoBackground } from "@/components/FrameVideoBackground";
 
 // ─── Scroll-reveal hook ─────────────────────────────────────────────────
 
@@ -183,9 +184,16 @@ const ExplanationPage = () => {
     <div className="space-y-0 -mt-8 md:-mt-12">
       {/* ═══════════════════ HERO SECTION ═══════════════════ */}
       <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden -mx-4 md:-mx-8 px-4 md:px-8">
+        {/* Background Video */}
+        <FrameVideoBackground
+          frameFolder="/wallpaper"
+          frameCount={80}
+          fps={24}
+        />
+        
         {/* Dynamic background orb */}
         <div
-          className="absolute rounded-full blur-[120px] opacity-20"
+          className="absolute rounded-full blur-[120px] opacity-30 z-0"
           style={{
             width: 600,
             height: 600,
@@ -196,7 +204,7 @@ const ExplanationPage = () => {
             transition: "left 3s ease, top 3s ease",
           }}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.06),transparent_60%)]" />
+        <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.1),transparent_60%)]" />
 
         <div className="relative z-10 text-center max-w-4xl mx-auto">
           <RevealSection>
